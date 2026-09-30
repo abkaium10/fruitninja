@@ -5,8 +5,13 @@ const dpr=Math.min(3,Math.max(1,window.devicePixelRatio||1));
 
 canvas.width=Math.round(W*dpr);
 canvas.height=Math.round(H*dpr);
-canvas.style.width=W+"px";
-canvas.style.height=H+"px";
+
+// Mobile Responsive & Touch setup
+canvas.style.width="100%";
+canvas.style.maxWidth=W+"px";
+canvas.style.height="auto";
+canvas.style.aspectRatio="4/3";
+canvas.style.touchAction="none"; // Mobile e swipe korle page scroll hobe na
 
 const ctx=canvas.getContext("2d",{
   alpha:false,
@@ -91,6 +96,18 @@ const bombMusic=new Audio("assets/bomb.wav");
 theme.loop=true;
 bombMusic.loop=true;
 theme.volume=.5;
+
+let musicStarted=false;
+function unlockAudio(){
+  if(!musicStarted){
+    if(musicEnabled){
+      playMusic(true);
+    }
+    musicStarted=true;
+  }
+}
+window.addEventListener("pointerdown",unlockAudio,{once:true});
+window.addEventListener("touchstart",unlockAudio,{once:true});
 
 let players=[];
 
@@ -243,6 +260,7 @@ let mouse={
 };
 
 canvas.addEventListener("pointermove",e=>{
+  e.preventDefault();
   mouse=Object.assign(
     mouse,
     mousePos(e),
@@ -1102,7 +1120,6 @@ function updateGame(dt){
   }
 }
 
-
 /* =========================================================
    THIN REFERENCE-STYLE BLADE
    ========================================================= */
@@ -1122,59 +1139,37 @@ function bladeSmoothstep(t){
   return t*t*(3-2*t);
 }
 
-
-/*
-   Much thinner profile.
-
-   0.00 = sharp front
-   0.10 = small expansion
-   0.30 = medium body
-   0.50 = maximum body
-   0.70 = taper
-   1.00 = needle-thin tail
-*/
 function bladeProfile(p){
-
   if(p<.10){
-
     const t=p/.10;
-
     return .18+
       bladeSmoothstep(t)*3.2;
   }
 
   if(p<.30){
-
     const t=
       (p-.10)/.20;
-
     return 3.38+
       bladeSmoothstep(t)*4.2;
   }
 
   if(p<.52){
-
     const t=
       (p-.30)/.22;
-
     return 7.58-
       bladeSmoothstep(t)*.65;
   }
 
   if(p<.72){
-
     const t=
       (p-.52)/.20;
-
     return 6.93-
       bladeSmoothstep(t)*3.0;
   }
 
   if(p<.88){
-
     const t=
       (p-.72)/.16;
-
     return 3.93-
       bladeSmoothstep(t)*2.55;
   }
@@ -1186,14 +1181,11 @@ function bladeProfile(p){
     bladeSmoothstep(t)*1.18;
 }
 
-
 function buildBladePath(extra=0){
-
   const left=[];
   const right=[];
 
   for(let i=0;i<trail.length;i++){
-
     const p=
       i/(trail.length-1);
 
@@ -1231,16 +1223,9 @@ function buildBladePath(extra=0){
     let width=
       bladeProfile(p);
 
-    /*
-      Only a small speed effect.
-      This keeps the blade thin.
-    */
     width+=
       powerForBlade*1.15;
 
-    /*
-      Very small asymmetry.
-    */
     const leftWidth=
       width*1.04+
       extra;
@@ -1249,9 +1234,6 @@ function buildBladePath(extra=0){
       width*.88+
       extra;
 
-    /*
-      Gentle curved center.
-    */
     const curveOffset=
       Math.sin(p*Math.PI)*.8;
 
@@ -1288,7 +1270,6 @@ function buildBladePath(extra=0){
   );
 
   for(let i=1;i<left.length;i++){
-
     const prev=left[i-1];
     const cur=left[i];
 
@@ -1316,7 +1297,6 @@ function buildBladePath(extra=0){
     i>=0;
     i--
   ){
-
     const cur=right[i];
 
     const prev=
@@ -1346,21 +1326,16 @@ function buildBladePath(extra=0){
   ctx.closePath();
 }
 
-
 function drawBlade(){
-
   if(!mouse.down){
-
     trail=[];
     trailStarted=false;
     smoothSpeed=0;
     powerForBlade=0;
-
     return;
   }
 
   if(!trailStarted){
-
     lastMouse={
       x:mouse.x,
       y:mouse.y
@@ -1410,13 +1385,6 @@ function drawBlade(){
   if(trail.length<2)
     return;
 
-
-  /*
-    -------------------------
-    THIN OUTER GLOW
-    -------------------------
-  */
-
   ctx.save();
 
   buildBladePath(3.0);
@@ -1432,13 +1400,6 @@ function drawBlade(){
     "rgba(90,180,230,.07)";
 
   ctx.fill();
-
-
-  /*
-    -------------------------
-    SLIM BLUE EDGE
-    -------------------------
-  */
 
   ctx.shadowBlur=0;
 
@@ -1476,13 +1437,6 @@ function drawBlade(){
     edgeGradient;
 
   ctx.fill();
-
-
-  /*
-    -------------------------
-    MAIN VERY THIN BLADE
-    -------------------------
-  */
 
   buildBladePath(0);
 
@@ -1529,13 +1483,6 @@ function drawBlade(){
 
   ctx.fill();
 
-
-  /*
-    -------------------------
-    RAZOR-LIKE OUTLINE
-    -------------------------
-  */
-
   buildBladePath(-.35);
 
   ctx.strokeStyle=
@@ -1548,17 +1495,9 @@ function drawBlade(){
 
   ctx.stroke();
 
-
-  /*
-    -------------------------
-    CENTER HIGHLIGHT
-    -------------------------
-  */
-
   ctx.beginPath();
 
   for(let i=0;i<trail.length;i++){
-
     const p=trail[i];
 
     if(i===0)
@@ -1583,11 +1522,6 @@ function drawBlade(){
   ctx.lineCap="round";
 
   ctx.stroke();
-
-
-  /*
-    Tiny tip glint.
-  */
 
   const tip=trail[0];
 
@@ -1614,7 +1548,6 @@ function drawBlade(){
     y:mouse.y
   };
 }
-
 
 /* =========================================================
    REST OF GAME
@@ -1875,7 +1808,6 @@ function drawHow(){
   ];
 
   rows.forEach((r,i)=>{
-
     text(
       r[0],
       180,
@@ -1910,7 +1842,6 @@ function drawHow(){
 }
 
 function drawLeaderboard(){
-
   header(
     "LEADERBOARD",
     "Top local players"
@@ -1967,7 +1898,6 @@ function drawLeaderboard(){
     );
 
   if(!visible){
-
     text(
       "No scores saved yet.",
       400,
@@ -1979,12 +1909,10 @@ function drawLeaderboard(){
   }
 
   for(let i=0;i<visible;i++){
-
     const y=
       210+i*28;
 
     if(i===0){
-
       ctx.fillStyle=
         "rgba(255,215,0,.16)";
 
@@ -2033,7 +1961,6 @@ function drawLeaderboard(){
 }
 
 function drawCredits(){
-
   ctx.fillStyle=
     "rgba(0,0,0,.68)";
 
@@ -2166,7 +2093,6 @@ function drawCredits(){
 }
 
 function drawSettings(){
-
   header(
     "SETTINGS",
     "Audio controls"
@@ -2183,7 +2109,6 @@ function drawSettings(){
       58
     )
   ){
-
     musicEnabled=!musicEnabled;
 
     playMusic(
@@ -2223,12 +2148,10 @@ function drawSettings(){
 }
 
 function drawGame(){
-
   if(
     assets.background.complete&&
     assets.background.naturalWidth
   ){
-
     ctx.drawImage(
       assets.background,
       0,
@@ -2236,10 +2159,8 @@ function drawGame(){
       W,
       H
     );
-
   }
   else{
-
     ctx.fillStyle="#315b31";
 
     ctx.fillRect(
@@ -2253,7 +2174,6 @@ function drawGame(){
   drawBlade();
 
   for(const f of fruitsState){
-
     if(!f.active)
       continue;
 
@@ -2265,7 +2185,6 @@ function drawGame(){
       ];
 
     if(!f.sliced){
-
       ctx.save();
 
       ctx.translate(
@@ -2287,12 +2206,9 @@ function drawGame(){
       );
 
       ctx.restore();
-
     }
     else{
-
       if(f.juice<1){
-
         drawImageSafe(
           img,
           f.x,
@@ -2324,7 +2240,6 @@ function drawGame(){
     );
 
   if(showScorePopup){
-
     text(
       "+20",
       scorePopupX,
@@ -2338,7 +2253,6 @@ function drawGame(){
     showCombo&&
     comboDisplayCount>=2
   ){
-
     text(
       `${comboDisplayCount} COMBO!`,
       W/2,
@@ -2350,7 +2264,6 @@ function drawGame(){
   }
 
   if(showCritical){
-
     text(
       "CRITICAL!",
       W/2,
@@ -2377,9 +2290,7 @@ function drawGame(){
     );
 
   for(const p of particles){
-
     if(p.active){
-
       ctx.globalAlpha=p.life;
 
       ctx.beginPath();
@@ -2486,7 +2397,6 @@ function drawGame(){
   );
 
   for(let i=0;i<3;i++){
-
     text(
       i<life
         ?"<3"
@@ -2505,12 +2415,10 @@ function drawGame(){
 }
 
 function drawGameOver(){
-
   if(
     assets.aftergame.complete&&
     assets.aftergame.naturalWidth
   ){
-
     ctx.drawImage(
       assets.aftergame,
       0,
@@ -2531,7 +2439,6 @@ function drawGameOver(){
   );
 
   if(!gameover){
-
     stopBombMusic();
     theme.pause();
 
@@ -2545,7 +2452,6 @@ function drawGameOver(){
       score>
       players[currentPlayer].highScore
     ){
-
       players[currentPlayer].highScore=
         score;
 
@@ -2634,7 +2540,6 @@ function drawGameOver(){
     )||
     keys.KeyR
   ){
-
     resetGame();
 
     gameover=false;
@@ -2654,7 +2559,6 @@ function drawGameOver(){
     )||
     keys.KeyM
   ){
-
     score=0;
     life=3;
     startgame=false;
@@ -2672,12 +2576,10 @@ function drawGameOver(){
 }
 
 function drawLoading(){
-
   if(
     assets.loading.complete&&
     assets.loading.naturalWidth
   ){
-
     ctx.drawImage(
       assets.loading,
       0,
@@ -2685,10 +2587,8 @@ function drawLoading(){
       W,
       H
     );
-
   }
   else{
-
     ctx.fillStyle="#000";
 
     ctx.fillRect(
@@ -2741,7 +2641,6 @@ function drawLoading(){
   );
 
   if(bw*p>0){
-
     roundedRect(
       bx+3,
       by+3,
@@ -2763,7 +2662,6 @@ function drawLoading(){
 }
 
 function frame(ts){
-
   const dt=
     Math.min(
       .033,
@@ -2775,7 +2673,6 @@ function frame(ts){
   frame.last=ts;
 
   if(loading){
-
     loadingTimer+=dt;
 
     drawLoading();
@@ -2791,7 +2688,6 @@ function frame(ts){
   }
 
   if(!startgame){
-
     drawMenu();
 
     mouse.pressed=false;
@@ -2813,41 +2709,32 @@ function frame(ts){
 
 requestAnimationFrame(frame);
 
-
 /* Player name keyboard input */
 
 window.addEventListener("keydown",e=>{
-
   if(
     !startgame&&
     menuScreen===1
   ){
-
     if(
       e.code==="Enter"&&
       playerName.length
     ){
-
       startPlayer();
-
       return;
     }
 
     if(e.code==="Escape"){
-
       menuScreen=0;
-
       return;
     }
 
     if(e.code==="Backspace"){
-
       playerName=
         playerName.slice(
           0,
           -1
         );
-
       return;
     }
 
@@ -2859,7 +2746,6 @@ window.addEventListener("keydown",e=>{
       playerName.length<
         MAX_PLAYER_NAME
     ){
-
       playerName+=e.key;
     }
   }
